@@ -1,0 +1,50 @@
+name: MERN App CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.x'
+
+      - name: Install dependencies for the server
+        run: |
+          cd server
+          npm install
+
+      - name: Install dependencies and build the client
+        run: |
+          cd client
+          npm install
+          npm run build
+
+      - name: Install PM2 globally
+        run: |
+          sudo npm install -g pm2
+
+      - name: Deploy to local server
+        run: |
+          sudo mkdir -p /var/www/mern-app
+          sudo cp -r . /var/www/mern-app
+
+      - name: Start or Restart PM2 Process
+        run: |
+          cd /var/www/mern-app/server
+          pm2 start app.js --name mern-backend || pm2 restart mern-backend
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+
+      - name: List PM2 Processes
+        run: |
+          pm2 list
